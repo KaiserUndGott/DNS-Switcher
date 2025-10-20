@@ -14,6 +14,7 @@ Automatischer DNS-Wechsel zwischen Adguard (Heimnetz) und DHCP (Hotspot/andere N
 ✅ Funktioniert auch bei paralleler Kabel + WLAN Verbindung
 ✅ Automatische Warnung bei unbekannten Netzwerken
 ✅ Einfache Rekonfiguration wenn sich Hotspot-Name ändert
+✅ Vollständige Deinstallationsroutine mit Ausgangszustand-Wiederherstellung
 ✅ Kompatibel mit macOS Sequoia 26.x und höher
 ✅ Läuft automatisch im Hintergrund bei jedem Netzwerkwechsel
 
@@ -88,14 +89,40 @@ tail -10 /var/log/auto-dns-switch.log
 
 ## Deinstallation
 
+### Automatische Deinstallation (empfohlen)
+
+Das Deinstallationsskript entfernt alle Komponenten und stellt den Ausgangszustand wieder her:
+
 ```bash
+cd /Users/fbw/Documents/Entwicklung/DNS-Switcher
+sudo ./uninstall-dns-switcher.sh
+```
+
+Das Script:
+- ✓ Stoppt und entfernt den LaunchDaemon Service
+- ✓ Löscht alle installierten Scripts
+- ✓ Entfernt die Konfigurationsdatei
+- ✓ Löscht alle Log-Dateien
+- ✓ Setzt DNS auf Automatisch (DHCP) zurück
+
+### Manuelle Deinstallation
+
+Falls du die Komponenten manuell entfernen möchtest:
+
+```bash
+# Service stoppen
 sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist
+
+# Komponenten entfernen
 sudo rm /Library/LaunchDaemons/com.auto-dns-switch.plist
 sudo rm /usr/local/bin/auto-dns-switch.sh
 sudo rm /usr/local/bin/auto-dns-switch-config.sh
 sudo rm /usr/local/etc/auto-dns-switch.conf
 sudo rm /var/log/auto-dns-switch.log
 sudo rm /var/log/auto-dns-switch-error.log
+
+# DNS zurücksetzen
+networksetup -setdnsservers Wi-Fi "Empty"
 ```
 
 ## Konfigurationsdateien
