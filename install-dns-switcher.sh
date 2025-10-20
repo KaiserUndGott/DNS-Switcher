@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Installationsskript für Auto DNS Switcher
+# Kompatibel mit macOS 26+ (Sequoia und höher)
 
 echo "=== Auto DNS Switcher Installation ==="
 echo ""
@@ -12,14 +13,15 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# SSID abfragen
-echo "Schritt 1/4: Konfiguration"
+# SSIDs abfragen
+echo "Schritt 1/5: Konfiguration"
 echo "----------------------------"
 WIFI_DEVICE=$(networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
 current_ssid=$(networksetup -getairportnetwork "$WIFI_DEVICE" 2>/dev/null | awk -F': ' '{print $2}')
 
-if [ -n "$current_ssid" ]; then
-    echo "Aktuell verbundenes WLAN: $current_ssid"
+# Heimnetz SSID
+if [[ "$current_ssid" != *"not associated"* ]] && [ -n "$current_ssid" ]; then
+    echo "Aktuell verbundenes WLAN: '$current_ssid'"
     read -p "Ist das dein Heimnetz? (j/n): " is_home
 
     if [ "$is_home" == "j" ] || [ "$is_home" == "J" ]; then
@@ -31,18 +33,62 @@ else
     read -p "Bitte gib die SSID deines Heimnetzes ein: " HOME_SSID
 fi
 
-# Script anpassen und kopieren
+# Hotspot SSID
 echo ""
-echo "Schritt 2/4: Script Installation"
+read -p "Bitte gib die SSID deines Handy-Hotspots ein: " HOTSPOT_SSID
+
+# Adguard DNS (optional anpassen)
+echo ""
+read -p "Adguard DNS-IP [Standard: 192.168.128.253]: " ADGUARD_DNS
+if [ -z "$ADGUARD_DNS" ]; then
+    ADGUARD_DNS="192.168.128.253"
+fi
+
+echo ""
+echo "Konfiguration:"
+echo "  Heimnetz SSID:  $HOME_SSID"
+echo "  Hotspot SSID:   $HOTSPOT_SSID"
+echo "  Adguard DNS:    $ADGUARD_DNS"
+echo ""
+read -p "Ist das korrekt? (j/n): " confirm
+
+if [ "$confirm" != "j" ] && [ "$confirm" != "J" ]; then
+    echo "Installation abgebrochen."
+    exit 1
+fi
+
+# Konfigurationsdatei erstellen
+echo ""
+echo "Schritt 2/5: Konfigurationsdatei erstellen"
 echo "----------------------------"
-sed "s/DEIN_HEIMNETZ_SSID/$HOME_SSID/" auto-dns-switch.sh > /tmp/auto-dns-switch.sh
-chmod +x /tmp/auto-dns-switch.sh
-mv /tmp/auto-dns-switch.sh /usr/local/bin/auto-dns-switch.sh
-echo "✓ Script nach /usr/local/bin/ kopiert"
+mkdir -p /usr/local/etc
+cat > /usr/local/etc/auto-dns-switch.conf <<EOF
+# Auto DNS Switcher Konfiguration
+# Erstellt: $(date '+%Y-%m-%d %H:%M:%S')
+
+HOME_NETWORK_SSID="$HOME_SSID"
+HOTSPOT_SSID="$HOTSPOT_SSID"
+ADGUARD_DNS="$ADGUARD_DNS"
+NETWORK_SERVICE="Wi-Fi"
+EOF
+chmod 644 /usr/local/etc/auto-dns-switch.conf
+echo "✓ Konfiguration nach /usr/local/etc/ gespeichert"
+
+# Scripts kopieren
+echo ""
+echo "Schritt 3/5: Scripts Installation"
+echo "----------------------------"
+cp auto-dns-switch.sh /usr/local/bin/auto-dns-switch.sh
+chmod +x /usr/local/bin/auto-dns-switch.sh
+echo "✓ Haupt-Script nach /usr/local/bin/ kopiert"
+
+cp auto-dns-switch-config.sh /usr/local/bin/auto-dns-switch-config.sh
+chmod +x /usr/local/bin/auto-dns-switch-config.sh
+echo "✓ Konfigurations-Script nach /usr/local/bin/ kopiert"
 
 # LaunchDaemon installieren
 echo ""
-echo "Schritt 3/4: LaunchDaemon Installation"
+echo "Schritt 4/5: LaunchDaemon Installation"
 echo "----------------------------"
 cp com.auto-dns-switch.plist /Library/LaunchDaemons/
 chmod 644 /Library/LaunchDaemons/com.auto-dns-switch.plist
@@ -55,7 +101,7 @@ chmod 644 /var/log/auto-dns-switch.log
 
 # LaunchDaemon laden
 echo ""
-echo "Schritt 4/4: Service starten"
+echo "Schritt 5/5: Service starten"
 echo "----------------------------"
 launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist
 echo "✓ Service gestartet"
@@ -68,15 +114,25 @@ echo ""
 echo "Der DNS-Switcher läuft jetzt automatisch bei jedem Netzwerkwechsel."
 echo ""
 echo "Konfiguration:"
-echo "  - Heimnetz SSID: $HOME_SSID"
-echo "  - Heimnetz DNS: 192.168.128.253 (Adguard)"
-echo "  - Andere Netze: Automatisch (DHCP)"
+echo "  - Heimnetz SSID:  $HOME_SSID → DNS: $ADGUARD_DNS (Adguard)"
+echo "  - Hotspot SSID:   $HOTSPOT_SSID → DNS: Automatisch (DHCP)"
+echo "  - Andere Netze:   → DNS: Automatisch (DHCP) + Warnung im Log"
 echo ""
-echo "Log-Datei anzeigen:"
-echo "  tail -f /var/log/auto-dns-switch.log"
+echo "Nützliche Befehle:"
+echo "  Log-Datei live anzeigen:"
+echo "    tail -f /var/log/auto-dns-switch.log"
 echo ""
-echo "Deinstallation:"
-echo "  sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
-echo "  sudo rm /Library/LaunchDaemons/com.auto-dns-switch.plist"
-echo "  sudo rm /usr/local/bin/auto-dns-switch.sh"
+echo "  Hotspot-SSID später ändern:"
+echo "    sudo /usr/local/bin/auto-dns-switch-config.sh"
+echo ""
+echo "  Service neu starten:"
+echo "    sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo "    sudo launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo ""
+echo "  Deinstallation:"
+echo "    sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo "    sudo rm /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo "    sudo rm /usr/local/bin/auto-dns-switch.sh"
+echo "    sudo rm /usr/local/bin/auto-dns-switch-config.sh"
+echo "    sudo rm /usr/local/etc/auto-dns-switch.conf"
 echo ""
