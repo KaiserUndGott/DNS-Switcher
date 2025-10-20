@@ -114,6 +114,29 @@ echo "----------------------------"
 launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist
 echo "✓ Service gestartet"
 
+# Optional: DNS sofort für aktuelles Netzwerk setzen
+echo ""
+read -p "DNS sofort für aktuelles Netzwerk setzen? (j/n) [Standard: j]: " set_dns_now
+set_dns_now=${set_dns_now:-j}
+
+if [ "$set_dns_now" == "j" ] || [ "$set_dns_now" == "J" ]; then
+    echo ""
+    echo "DNS wird für aktuelles Netzwerk angepasst..."
+
+    # Script manuell ausführen
+    /usr/local/bin/auto-dns-switch.sh
+
+    echo "✓ DNS-Einstellung aktualisiert"
+
+    # Aktuellen DNS anzeigen
+    CURRENT_DNS=$(networksetup -getdnsservers Wi-Fi | head -n 1)
+    if [ "$CURRENT_DNS" != "There aren't any DNS Servers set on Wi-Fi." ]; then
+        echo "  Aktueller DNS: $CURRENT_DNS"
+    else
+        echo "  Aktueller DNS: Automatisch (DHCP)"
+    fi
+fi
+
 echo ""
 echo "==================================="
 echo "✓ Installation erfolgreich!"
@@ -130,12 +153,12 @@ echo "Nützliche Befehle:"
 echo "  Log-Datei live anzeigen:"
 echo "    tail -f /var/log/auto-dns-switch.log"
 echo ""
-echo "  Hotspot-SSID später ändern:"
+echo "  Hotspot-SSID später ändern (inkl. Service-Neustart):"
 echo "    sudo /usr/local/bin/auto-dns-switch-config.sh"
 echo ""
 echo "  Service neu starten:"
-echo "    cd $(dirname "$0")"
-echo "    sudo ./restart-dns-service.sh"
+echo "    sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo "    sudo launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist"
 echo ""
 echo "  Deinstallation (mit Ausgangszustand-Wiederherstellung):"
 echo "    cd $(dirname "$0")"

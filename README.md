@@ -71,18 +71,12 @@ networksetup -getdnsservers Wi-Fi
 ```
 
 ### Service neu starten
-
-**Automatisch (empfohlen):**
-```bash
-cd /Users/fbw/Documents/Entwicklung/DNS-Switcher
-sudo ./restart-dns-service.sh
-```
-
-**Manuell:**
 ```bash
 sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist
 sudo launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist
 ```
+
+**Hinweis**: Das Config-Tool (`auto-dns-switch-config.sh`) bietet automatischen Neustart nach Konfigurationsänderung an.
 
 ### Service-Status prüfen
 ```bash
