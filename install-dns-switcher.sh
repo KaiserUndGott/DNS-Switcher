@@ -57,7 +57,8 @@ echo "  Heimnetz SSID:  $HOME_SSID"
 echo "  Hotspot SSID:   $HOTSPOT_SSID"
 echo "  Adguard DNS:    $ADGUARD_DNS"
 echo ""
-read -p "Ist das korrekt? (j/n): " confirm
+read -p "Ist das korrekt? (j/n) [Standard: j]: " confirm
+confirm=${confirm:-j}
 
 if [ "$confirm" != "j" ] && [ "$confirm" != "J" ]; then
     echo "Installation abgebrochen."
@@ -133,8 +134,8 @@ echo "  Hotspot-SSID später ändern:"
 echo "    sudo /usr/local/bin/auto-dns-switch-config.sh"
 echo ""
 echo "  Service neu starten:"
-echo "    sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
-echo "    sudo launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist"
+echo "    cd $(dirname "$0")"
+echo "    sudo ./restart-dns-service.sh"
 echo ""
 echo "  Deinstallation (mit Ausgangszustand-Wiederherstellung):"
 echo "    cd $(dirname "$0")"
