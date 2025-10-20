@@ -127,7 +127,37 @@ echo "  Heimnetz SSID:  $HOME_NETWORK_SSID"
 echo "  Hotspot SSID:   $HOTSPOT_SSID"
 echo "  Adguard DNS:    $ADGUARD_DNS"
 echo ""
-echo "Die Änderungen werden beim nächsten Netzwerkwechsel aktiv."
+
+# Service neu starten
+read -p "Service jetzt neu starten? (j/n) [Standard: j]: " restart_service
+restart_service=${restart_service:-j}
+
+if [ "$restart_service" == "j" ] || [ "$restart_service" == "J" ]; then
+    echo ""
+    echo "Service wird neu gestartet..."
+
+    # Service entladen
+    if launchctl list | grep -q "com.auto-dns-switch"; then
+        launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist 2>/dev/null
+        sleep 1
+    fi
+
+    # Service neu laden
+    launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist 2>/dev/null
+
+    echo "✓ Service neu gestartet"
+    echo ""
+    echo "Die neuen Einstellungen sind jetzt aktiv."
+else
+    echo ""
+    echo "Service wurde NICHT neu gestartet."
+    echo "Die Änderungen werden beim nächsten Netzwerkwechsel aktiv."
+    echo ""
+    echo "Um den Service manuell neu zu starten:"
+    echo "  sudo launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist"
+    echo "  sudo launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist"
+fi
+
 echo ""
 
 # Log-Eintrag

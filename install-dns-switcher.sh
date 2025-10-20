@@ -19,30 +19,37 @@ echo "----------------------------"
 WIFI_DEVICE=$(networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
 current_ssid=$(networksetup -getairportnetwork "$WIFI_DEVICE" 2>/dev/null | awk -F': ' '{print $2}')
 
+# Standard-Werte
+DEFAULT_HOME_SSID="Wo der Frosch die Locken hat"
+DEFAULT_HOTSPOT_SSID="Hotzpotz@2704"
+DEFAULT_ADGUARD_DNS="192.168.128.253"
+
 # Heimnetz SSID
 if [[ "$current_ssid" != *"not associated"* ]] && [ -n "$current_ssid" ]; then
     echo "Aktuell verbundenes WLAN: '$current_ssid'"
-    read -p "Ist das dein Heimnetz? (j/n): " is_home
+    read -p "Ist das dein Heimnetz? (j/n) [Standard: j]: " is_home
+    is_home=${is_home:-j}  # Default: j
 
     if [ "$is_home" == "j" ] || [ "$is_home" == "J" ]; then
         HOME_SSID="$current_ssid"
     else
-        read -p "Bitte gib die SSID deines Heimnetzes ein: " HOME_SSID
+        read -p "Heimnetz SSID [Standard: $DEFAULT_HOME_SSID]: " HOME_SSID
+        HOME_SSID=${HOME_SSID:-$DEFAULT_HOME_SSID}
     fi
 else
-    read -p "Bitte gib die SSID deines Heimnetzes ein: " HOME_SSID
+    read -p "Heimnetz SSID [Standard: $DEFAULT_HOME_SSID]: " HOME_SSID
+    HOME_SSID=${HOME_SSID:-$DEFAULT_HOME_SSID}
 fi
 
 # Hotspot SSID
 echo ""
-read -p "Bitte gib die SSID deines Handy-Hotspots ein: " HOTSPOT_SSID
+read -p "Hotspot SSID [Standard: $DEFAULT_HOTSPOT_SSID]: " HOTSPOT_SSID
+HOTSPOT_SSID=${HOTSPOT_SSID:-$DEFAULT_HOTSPOT_SSID}
 
 # Adguard DNS (optional anpassen)
 echo ""
-read -p "Adguard DNS-IP [Standard: 192.168.128.253]: " ADGUARD_DNS
-if [ -z "$ADGUARD_DNS" ]; then
-    ADGUARD_DNS="192.168.128.253"
-fi
+read -p "Adguard DNS-IP [Standard: $DEFAULT_ADGUARD_DNS]: " ADGUARD_DNS
+ADGUARD_DNS=${ADGUARD_DNS:-$DEFAULT_ADGUARD_DNS}
 
 echo ""
 echo "Konfiguration:"
