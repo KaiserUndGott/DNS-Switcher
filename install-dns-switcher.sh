@@ -111,8 +111,24 @@ chmod 644 /var/log/auto-dns-switch.log
 echo ""
 echo "Schritt 5/5: Service starten"
 echo "----------------------------"
-launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist
-echo "✓ Service gestartet"
+
+# Prüfen ob Service bereits geladen ist und ggf. entladen
+if launchctl list | grep -q "com.auto-dns-switch"; then
+    echo "ℹ Service ist bereits geladen, wird neu geladen..."
+    launchctl unload /Library/LaunchDaemons/com.auto-dns-switch.plist 2>/dev/null
+    sleep 1
+fi
+
+# Service laden
+launchctl load /Library/LaunchDaemons/com.auto-dns-switch.plist 2>/dev/null
+
+# Prüfen ob erfolgreich
+if launchctl list | grep -q "com.auto-dns-switch"; then
+    echo "✓ Service erfolgreich gestartet"
+else
+    echo "⚠ Warnung: Service konnte nicht gestartet werden"
+    echo "  Fehler wird ignoriert - Service wird beim nächsten Boot gestartet"
+fi
 
 # Optional: DNS sofort für aktuelles Netzwerk setzen
 echo ""
